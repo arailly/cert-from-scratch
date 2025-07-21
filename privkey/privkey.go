@@ -4,8 +4,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"os"
-	"path/filepath"
 )
 
 type RSAPrivateKey struct {
@@ -20,14 +18,6 @@ func New(bits int) (*RSAPrivateKey, error) {
 	return &RSAPrivateKey{key: key}, nil
 }
 
-func (r *RSAPrivateKey) Save(filename string) error {
-	dir := filepath.Dir(filename)
-	if dir != "." && dir != "" {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			return err
-		}
-	}
-
-	derBytes := x509.MarshalPKCS1PrivateKey(r.key)
-	return os.WriteFile(filename, derBytes, 0600)
+func (r *RSAPrivateKey) Marshal() ([]byte, error) {
+	return x509.MarshalPKCS1PrivateKey(r.key), nil
 }

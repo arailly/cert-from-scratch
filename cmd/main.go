@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/arailly/cert-from-scratch/basecert"
 	"github.com/arailly/cert-from-scratch/privkey"
+	"github.com/arailly/cert-from-scratch/util"
 )
 
 func main() {
@@ -25,11 +27,21 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
 			os.Exit(1)
 		}
-		if err := key.Save(os.Args[2]); err != nil {
+		if err := util.MarshalAndSave(os.Args[2], key, 0600); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
 			os.Exit(1)
 		}
-		fmt.Printf("Private key generated and saved to: %s\n", os.Args[2])
+	case "basecert":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Error: output path required\n")
+			fmt.Fprintf(os.Stderr, "Usage: %s basecert <output-path>\n", os.Args[0])
+			os.Exit(1)
+		}
+		cert := basecert.New()
+		if err := util.MarshalAndSave(os.Args[2], cert, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving base certificate: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n", os.Args[1])
 		printUsage()
