@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/arailly/cert-from-scratch/basecert"
+	"github.com/arailly/cert-from-scratch/certwithpubkey"
 	"github.com/arailly/cert-from-scratch/privkey"
 	"github.com/arailly/cert-from-scratch/util"
 )
@@ -40,6 +41,26 @@ func main() {
 		cert := basecert.New()
 		if err := util.MarshalAndSave(os.Args[2], cert, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving base certificate: %v\n", err)
+			os.Exit(1)
+		}
+	case "signedcert":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Error: output path required\n")
+			fmt.Fprintf(os.Stderr, "Usage: %s signedcert <output-path-prefix>\n", os.Args[0])
+			os.Exit(1)
+		}
+		privkey, err := privkey.New(2048)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
+			os.Exit(1)
+		}
+		if err := util.MarshalAndSave(os.Args[2]+"-privkey.der", privkey, 0600); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
+			os.Exit(1)
+		}
+		cert := certwithpubkey.New(privkey)
+		if err := util.MarshalAndSave(os.Args[2]+"-cert.der", cert, 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving signed certificate: %v\n", err)
 			os.Exit(1)
 		}
 	default:

@@ -21,3 +21,7 @@ func New(bits int) (*RSAPrivateKey, error) {
 func (r *RSAPrivateKey) Marshal() ([]byte, error) {
 	return x509.MarshalPKCS1PrivateKey(r.key), nil
 }
+
+func (r *RSAPrivateKey) Public() *rsa.PublicKey {
+	return &r.key.PublicKey
+}
