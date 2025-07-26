@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/arailly/cert-from-scratch/basecert"
-	"github.com/arailly/cert-from-scratch/certwithpubkey"
 	"github.com/arailly/cert-from-scratch/privkey"
+	"github.com/arailly/cert-from-scratch/signedcert"
 	"github.com/arailly/cert-from-scratch/util"
 )
 
@@ -58,7 +58,7 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
 			os.Exit(1)
 		}
-		cert := certwithpubkey.New(privkey)
+		cert := signedcert.New(privkey)
 		if err := util.MarshalAndSave(os.Args[2]+"-cert.der", cert, 0644); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving signed certificate: %v\n", err)
 			os.Exit(1)

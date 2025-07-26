@@ -1,6 +1,7 @@
 package privkey
 
 import (
+	"crypto"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
@@ -24,4 +25,8 @@ func (r *RSAPrivateKey) Marshal() ([]byte, error) {
 
 func (r *RSAPrivateKey) Public() *rsa.PublicKey {
 	return &r.key.PublicKey
+}
+
+func (r *RSAPrivateKey) Sign(hashed []byte) ([]byte, error) {
+	return rsa.SignPKCS1v15(nil, r.key, crypto.SHA256, hashed)
 }

@@ -1,6 +1,7 @@
-package certwithpubkey
+package signedcert
 
 import (
+	"crypto/sha256"
 	"encoding/asn1"
 	"math/big"
 	"time"
@@ -73,12 +74,6 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 		Parameters: asn1.NullRawValue,
 	}
 
-	zeros := make([]byte, 8)
-	bitStringWithZeros := asn1.BitString{
-		Bytes:     zeros,
-		BitLength: len(zeros) * 8,
-	}
-
 	name := Name{
 		RDNSequence: []AttributeTypeAndValue{
 			{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: "Example Country"},
@@ -119,10 +114,23 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 		PublicKey: subjectPublicKeyInfo,
 	}
 
+	encodedTBS, err := asn1.Marshal(tbsCertificate)
+	if err != nil {
+		panic("failed to marshal TBS certificate: " + err.Error())
+	}
+	hashed := sha256.Sum256(encodedTBS)
+	signature, err := privkey.Sign(hashed[:])
+	if err != nil {
+		panic("failed to sign TBS certificate: " + err.Error())
+	}
+
 	return &Certificate{
 		TBSCertificate:     tbsCertificate,
 		SignatureAlgorithm: signatureAlgorithm,
-		SignatureValue:     bitStringWithZeros,
+		SignatureValue: asn1.BitString{
+			Bytes:     signature,
+			BitLength: len(signature) * 8,
+		},
 	}
 }
 
