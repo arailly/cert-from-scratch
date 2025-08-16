@@ -1,4 +1,4 @@
-package server
+package https
 
 import (
 	"crypto/tls"
