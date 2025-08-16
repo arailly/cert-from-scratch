@@ -6,6 +6,7 @@ import (
 
 	"github.com/arailly/cert-from-scratch/basecert"
 	"github.com/arailly/cert-from-scratch/privkey"
+	"github.com/arailly/cert-from-scratch/server"
 	"github.com/arailly/cert-from-scratch/signedcert"
 	"github.com/arailly/cert-from-scratch/util"
 )
@@ -63,6 +64,20 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error saving signed certificate: %v\n", err)
 			os.Exit(1)
 		}
+	case "https":
+		if len(os.Args) < 5 {
+			fmt.Fprintf(os.Stderr, "Error: cert.der, key.der, and address required\n")
+			fmt.Fprintf(os.Stderr, "Usage: %s https <cert.der> <key.der> <addr>\n", os.Args[0])
+			os.Exit(1)
+		}
+		certPath := os.Args[2]
+		keyPath := os.Args[3]
+		addr := os.Args[4]
+		err := server.Start(certPath, keyPath, addr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "HTTPS server error: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n", os.Args[1])
 		printUsage()
@@ -74,4 +89,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s <command> [args...]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\nCommands:\n")
 	fmt.Fprintf(os.Stderr, "  privkey <output-path>  Generate RSA private key in DER format\n")
+	fmt.Fprintf(os.Stderr, "  basecert <output-path>  Generate base certificate in DER format\n")
+	fmt.Fprintf(os.Stderr, "  signedcert <output-path-prefix>  Generate signed certificate and private key in DER format\n")
+	fmt.Fprintf(os.Stderr, "  https <cert.der> <key.der> <addr>  Start HTTPS server with DER cert/key (e.g. :8443)\n")
 }
