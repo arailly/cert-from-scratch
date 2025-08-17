@@ -48,8 +48,8 @@ type AttributeTypeAndValue struct {
 }
 
 type Validity struct {
-	NotBefore time.Time `asn1:"generalized"`
-	NotAfter  time.Time `asn1:"generalized"`
+	NotBefore time.Time `asn1:"utc"`
+	NotAfter  time.Time `asn1:"utc"`
 }
 
 type SubjectPublicKeyInfo struct {
@@ -108,8 +108,8 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 		Signature:    signatureAlgorithm,
 		Issuer:       name,
 		Validity: Validity{
-			NotBefore: time.Now(),
-			NotAfter:  time.Now().AddDate(1, 0, 0), // Valid for 1 year
+			NotBefore: time.Now().UTC(),
+			NotAfter:  time.Now().AddDate(1, 0, 0).UTC(), // Valid for 1 year
 		},
 		Subject:   name,
 		PublicKey: subjectPublicKeyInfo,

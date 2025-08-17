@@ -92,12 +92,12 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
 			os.Exit(1)
 		}
-		if err := util.MarshalAndSaveKey(prefix+"-privkey.der", priv); err != nil {
+		if err := util.MarshalAndSaveKey(prefix+"-privkey", priv); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
 			os.Exit(1)
 		}
 		cert := chainedcert.New(priv)
-		if err := util.MarshalAndSaveCert(prefix+"-cert.der", cert); err != nil {
+		if err := util.MarshalAndSaveCert(prefix+"-cert", cert); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving certificate: %v\n", err)
 			os.Exit(1)
 		}

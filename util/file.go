@@ -17,7 +17,7 @@ func saveDER(filename string, data []byte, perm os.FileMode) error {
 			return err
 		}
 	}
-	return os.WriteFile(filename, data, perm)
+	return os.WriteFile(filename+".der", data, perm)
 }
 
 func savePEM(filename string, data []byte, pemType string, perm os.FileMode) error {
