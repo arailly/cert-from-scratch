@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/arailly/cert-from-scratch/basecert"
+	"github.com/arailly/cert-from-scratch/certified"
 	"github.com/arailly/cert-from-scratch/privkey"
 	"github.com/arailly/cert-from-scratch/selfsigned"
 	"github.com/arailly/cert-from-scratch/util"
@@ -64,6 +65,27 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error saving certificate: %v\n", err)
 			os.Exit(1)
 		}
+	case "certified":
+		if len(os.Args) < 3 {
+			fmt.Fprintf(os.Stderr, "Error: output path prefix required\n")
+			fmt.Fprintf(os.Stderr, "Usage: %s certified <output-path-prefix>\n", os.Args[0])
+			os.Exit(1)
+		}
+		prefix := os.Args[2]
+		priv, err := privkey.New(2048)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
+			os.Exit(1)
+		}
+		if err := util.MarshalAndSaveKey(prefix+"-key", priv); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
+			os.Exit(1)
+		}
+		cert := certified.NewCACertificate(priv)
+		if err := util.MarshalAndSaveCert(prefix+"-cert", cert); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving CA certificate: %v\n", err)
+			os.Exit(1)
+		}
 	default:
 		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n", os.Args[1])
 		printUsage()
@@ -79,4 +101,5 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  signedcert <output-path-prefix>  Generate signed certificate and private key in DER format\n")
 	fmt.Fprintf(os.Stderr, "  https <prefix> <addr>  Start HTTPS server with <prefix>-cert.der and <prefix>-privkey.der (e.g. :8443)\n")
 	fmt.Fprintf(os.Stderr, "  chainedcert <output-path-prefix>  Generate certificate and private key with CommonName=localhost in DER format\n")
+	fmt.Fprintf(os.Stderr, "  cagen <output-path-prefix>  Generate CA certificate and private key (PEM)\n")
 }
