@@ -68,12 +68,12 @@ func New() *BaseCertificate {
 
 	name := Name{
 		RDNSequence: []AttributeTypeAndValue{
-			{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: "Example Country"},
+			{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: "localhost"},
 		},
 	}
 
 	tbsCertificate := TBSCertificate{
-		Version:      3,
+		Version:      2,
 		SerialNumber: 1,
 		Signature:    signatureAlgorithm,
 		Issuer:       name,

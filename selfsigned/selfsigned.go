@@ -12,6 +12,7 @@ import (
 var (
 	oidRSAEncryption           = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
 	oidSHA256WithRSAEncryption = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
+	oidCommonName              = asn1.ObjectIdentifier{2, 5, 4, 3}
 )
 
 type Certificate struct {
@@ -77,7 +78,7 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 
 	name := Name{
 		RDNSequence: []AttributeTypeAndValue{
-			{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: "localhost"}, // CommonName
+			{Type: oidCommonName, Value: "localhost"},
 		},
 	}
 
