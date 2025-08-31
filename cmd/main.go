@@ -5,10 +5,8 @@ import (
 	"os"
 
 	"github.com/arailly/cert-from-scratch/basecert"
-	"github.com/arailly/cert-from-scratch/chainedcert"
-	"github.com/arailly/cert-from-scratch/https"
 	"github.com/arailly/cert-from-scratch/privkey"
-	"github.com/arailly/cert-from-scratch/signedcert"
+	"github.com/arailly/cert-from-scratch/selfsigned"
 	"github.com/arailly/cert-from-scratch/util"
 )
 
@@ -45,45 +43,10 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error saving base certificate: %v\n", err)
 			os.Exit(1)
 		}
-	case "signedcert":
-		if len(os.Args) < 3 {
-			fmt.Fprintf(os.Stderr, "Error: output path required\n")
-			fmt.Fprintf(os.Stderr, "Usage: %s signedcert <output-path-prefix>\n", os.Args[0])
-			os.Exit(1)
-		}
-		privkey, err := privkey.New(2048)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
-			os.Exit(1)
-		}
-		if err := util.MarshalAndSaveKey(os.Args[2]+"-privkey.der", privkey); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
-			os.Exit(1)
-		}
-		cert := signedcert.New(privkey)
-		if err := util.MarshalAndSaveCert(os.Args[2]+"-cert.der", cert); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving signed certificate: %v\n", err)
-			os.Exit(1)
-		}
-	case "https":
-		if len(os.Args) < 4 {
-			fmt.Fprintf(os.Stderr, "Error: prefix and address required\n")
-			fmt.Fprintf(os.Stderr, "Usage: %s https <prefix> <addr>\n", os.Args[0])
-			os.Exit(1)
-		}
-		prefix := os.Args[2]
-		addr := os.Args[3]
-		certPath := prefix + "-cert.der"
-		keyPath := prefix + "-privkey.der"
-		err := https.Start(certPath, keyPath, addr)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "HTTPS server error: %v\n", err)
-			os.Exit(1)
-		}
-	case "chainedcert":
+	case "selfsigned":
 		if len(os.Args) < 3 {
 			fmt.Fprintf(os.Stderr, "Error: output path prefix required\n")
-			fmt.Fprintf(os.Stderr, "Usage: %s chainedcert <output-path-prefix>\n", os.Args[0])
+			fmt.Fprintf(os.Stderr, "Usage: %s selfsigned <output-path-prefix>\n", os.Args[0])
 			os.Exit(1)
 		}
 		prefix := os.Args[2]
@@ -92,11 +55,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
 			os.Exit(1)
 		}
-		if err := util.MarshalAndSaveKey(prefix+"-privkey", priv); err != nil {
+		if err := util.MarshalAndSaveKey(prefix+"-key", priv); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
 			os.Exit(1)
 		}
-		cert := chainedcert.New(priv)
+		cert := selfsigned.New(priv)
 		if err := util.MarshalAndSaveCert(prefix+"-cert", cert); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving certificate: %v\n", err)
 			os.Exit(1)

@@ -1,4 +1,4 @@
-package signedcert
+package selfsigned
 
 import (
 	"crypto/sha256"
@@ -48,8 +48,8 @@ type AttributeTypeAndValue struct {
 }
 
 type Validity struct {
-	NotBefore time.Time `asn1:"generalized"`
-	NotAfter  time.Time `asn1:"generalized"`
+	NotBefore time.Time `asn1:"utc"`
+	NotAfter  time.Time `asn1:"utc"`
 }
 
 type SubjectPublicKeyInfo struct {
@@ -68,6 +68,7 @@ type Extension struct {
 	ExtnValue []byte
 }
 
+// New creates a new Certificate with the given private key and fixed CommonName ("localhost").
 func New(privkey *privkey.RSAPrivateKey) *Certificate {
 	signatureAlgorithm := AlgorithmIdentifier{
 		Algorithm:  oidSHA256WithRSAEncryption,
@@ -76,7 +77,7 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 
 	name := Name{
 		RDNSequence: []AttributeTypeAndValue{
-			{Type: asn1.ObjectIdentifier{2, 5, 4, 6}, Value: "Example Country"},
+			{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: "localhost"}, // CommonName
 		},
 	}
 
@@ -107,8 +108,8 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 		Signature:    signatureAlgorithm,
 		Issuer:       name,
 		Validity: Validity{
-			NotBefore: time.Now(),
-			NotAfter:  time.Now().AddDate(1, 0, 0), // Valid for 1 year
+			NotBefore: time.Now().UTC(),
+			NotAfter:  time.Now().AddDate(1, 0, 0).UTC(), // Valid for 1 year
 		},
 		Subject:   name,
 		PublicKey: subjectPublicKeyInfo,
