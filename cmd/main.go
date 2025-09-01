@@ -72,20 +72,36 @@ func main() {
 			os.Exit(1)
 		}
 		prefix := os.Args[2]
-		priv, err := privkey.New(2048)
+
+		// CA Certificate
+		caKey, err := privkey.New(2048)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
 			os.Exit(1)
 		}
-		if err := util.MarshalAndSaveKey(prefix+"-key", priv); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
-			os.Exit(1)
-		}
-		cert := certified.NewCACertificate(priv)
-		if err := util.MarshalAndSaveCert(prefix+"-cert", cert); err != nil {
+		// Private key for CA is not necessary to verify server certificate
+		caCert := certified.NewCACertificate(caKey)
+		if err := util.MarshalAndSaveCert(prefix+"-cacert", caCert); err != nil {
 			fmt.Fprintf(os.Stderr, "Error saving CA certificate: %v\n", err)
 			os.Exit(1)
 		}
+
+		// Server Certificate
+		serverKey, err := privkey.New(2048)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
+			os.Exit(1)
+		}
+		if err := util.MarshalAndSaveKey(prefix+"-key", serverKey); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
+			os.Exit(1)
+		}
+		serverCert := certified.NewServerCertificate(serverKey, caKey, caCert)
+		if err := util.MarshalAndSaveCert(prefix+"-cert", serverCert); err != nil {
+			fmt.Fprintf(os.Stderr, "Error saving server certificate: %v\n", err)
+			os.Exit(1)
+		}
+
 	default:
 		fmt.Fprintf(os.Stderr, "Error: unknown command '%s'\n", os.Args[1])
 		printUsage()
