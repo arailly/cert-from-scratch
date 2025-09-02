@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/asn1"
 	"math/big"
+	"net"
 	"time"
 
 	"github.com/arailly/cert-from-scratch/privkey"
@@ -24,14 +25,6 @@ var (
 	oidExtSubjectAltName   = asn1.ObjectIdentifier{2, 5, 29, 17}
 	oidServerAuth          = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
 )
-
-// TODO: Specify following fields
-// basicConstraints: CA:TRUE/FALSE
-// keyUsage: keyCertSign, cRLSign/digitalSignature, keyEncipherment
-// extendedKeyUsage (EKU): 通常なし（あっても CA 用）/serverAuth（必須）
-// SAN: 任意（必須ではない）/必須（DNS名/IP）
-// SKI/AKI: 推奨（チェーン用）/推奨
-// Subject CN: 任意（CA名として入る）/必須ではない（SAN が優先）
 
 type Certificate struct {
 	TBSCertificate     TBSCertificate
@@ -82,14 +75,23 @@ type RSAPublicKey struct {
 }
 
 type Extension struct {
-	ExtnID    asn1.ObjectIdentifier
-	Critical  bool
+	ExtnID asn1.ObjectIdentifier
+	// Critical: false の場合は、Critical フィールド自体を省略しないとブラウザが証明書のパースに失敗する。
+	// しかし、bool のデフォルト値は false であり、asn1 の omitempty タグをつけても false としてエンコードされてしまう。
+	// なんとかする。
+	// Critical  bool
 	ExtnValue []byte
 }
 
 type BasicConstraints struct {
 	CA      bool
 	PathLen int `asn1:"optional"`
+}
+
+type AuthorityKeyIdentifier struct {
+	KeyIdentifier []byte `asn1:"tag:0,optional"`
+	// AuthorityCertIssuer []GeneralName `asn1:"tag:1,optional"`
+	// AuthorityCertSerialNumber int      `asn1:"tag:2,optional"`
 }
 
 func sign(privkey *privkey.RSAPrivateKey, tbsCertificate *TBSCertificate) *Certificate {
@@ -156,8 +158,8 @@ func NewCACertificate(key *privkey.RSAPrivateKey) *Certificate {
 		panic("failed to marshal basic constraints: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID:    oidExtBasicConstraints,
-		Critical:  true,
+		ExtnID: oidExtBasicConstraints,
+		// Critical:  true,
 		ExtnValue: encodedBC,
 	})
 
@@ -171,24 +173,35 @@ func NewCACertificate(key *privkey.RSAPrivateKey) *Certificate {
 		panic("failed to marshal key usage: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID:    oidExtKeyUsage,
-		Critical:  true,
+		ExtnID: oidExtKeyUsage,
+		// Critical:  true,
 		ExtnValue: encodedKU,
 	})
 
 	// Subject Key Identifier
 	skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
+	skiValue, err := asn1.Marshal(skiHash[:])
+	if err != nil {
+		panic("failed to marshal Subject Key Identifier value: " + err.Error())
+	}
 	extensions = append(extensions, Extension{
-		ExtnID:    oidExtSubjectKeyId,
-		Critical:  false,
-		ExtnValue: skiHash[:],
+		ExtnID: oidExtSubjectKeyId,
+		// Critical:  false,
+		ExtnValue: skiValue,
 	})
 
 	// Authority Key Identifier
+	aki := AuthorityKeyIdentifier{
+		KeyIdentifier: skiValue,
+	}
+	akiValue, err := asn1.Marshal(aki)
+	if err != nil {
+		panic("failed to marshal Authority Key Identifier: " + err.Error())
+	}
 	extensions = append(extensions, Extension{
-		ExtnID:    oidExtAuthorityKeyId,
-		Critical:  false,
-		ExtnValue: skiHash[:],
+		ExtnID: oidExtAuthorityKeyId,
+		// Critical:  false,
+		ExtnValue: akiValue,
 	})
 
 	tbs := &TBSCertificate{
@@ -251,8 +264,8 @@ func NewServerCertificate(
 		panic("failed to marshal basic constraints: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID:    oidExtBasicConstraints,
-		Critical:  true,
+		ExtnID: oidExtBasicConstraints,
+		// Critical:  true,
 		ExtnValue: encodedBC,
 	})
 
@@ -266,64 +279,90 @@ func NewServerCertificate(
 		panic("failed to marshal key usage: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID:    oidExtKeyUsage,
-		Critical:  true,
+		ExtnID: oidExtKeyUsage,
+		// Critical:  true,
 		ExtnValue: encodedKU,
 	})
 
-	// FIX: following extensions don't work
+	// Extended Key Usage
+	eku := []asn1.ObjectIdentifier{
+		oidServerAuth, // serverAuth
+	}
+	encodedEKU, err := asn1.Marshal(eku)
+	if err != nil {
+		panic("failed to marshal extended key usage: " + err.Error())
+	}
+	extensions = append(extensions, Extension{
+		ExtnID:    oidExtExtendedKeyUsage,
+		ExtnValue: encodedEKU,
+	})
 
-	// // Extended Key Usage
-	// eku := []asn1.ObjectIdentifier{
-	// 	oidServerAuth, // serverAuth
-	// }
-	// encodedEKU, err := asn1.Marshal(eku)
-	// if err != nil {
-	// 	panic("failed to marshal extended key usage: " + err.Error())
-	// }
-	// extensions = append(extensions, Extension{
-	// 	ExtnID:    oidExtExtendedKeyUsage,
-	// 	Critical:  false,
-	// 	ExtnValue: encodedEKU,
-	// })
+	// Subject Alternative Name
+	lo4 := net.ParseIP("127.0.0.1").To4()
+	if lo4 == nil {
+		panic("failed to parse loopback IPv4 address")
+	}
 
-	// // Subject Alternative Name
-	// san := []string{"localhost", "127.0.0.1"}
-	// encodedSAN, err := asn1.Marshal(san)
-	// if err != nil {
-	// 	panic("failed to marshal subject alternative name: " + err.Error())
-	// }
-	// extensions = append(extensions, Extension{
-	// 	ExtnID:    oidExtSubjectAltName,
-	// 	Critical:  false,
-	// 	ExtnValue: encodedSAN,
-	// })
+	lo6 := net.ParseIP("::1").To16()
+	if lo6 == nil {
+		panic("failed to parse loopback IPv6 address")
+	}
 
-	// // Subject Key Identifier
-	// skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
-	// extensions = append(extensions, Extension{
-	// 	ExtnID:    oidExtSubjectKeyId,
-	// 	Critical:  false,
-	// 	ExtnValue: skiHash[:],
-	// })
+	san := struct {
+		DNSName string `asn1:"ia5,tag:2"`
+		IPAddr4 []byte `asn1:"tag:7"`
+		IPAddr6 []byte `asn1:"tag:7"`
+	}{
+		DNSName: "localhost",
+		IPAddr4: lo4,
+		IPAddr6: lo6,
+	}
+	encodedSAN, err := asn1.Marshal(san)
+	if err != nil {
+		panic("failed to marshal subject alternative name: " + err.Error())
+	}
+	extensions = append(extensions, Extension{
+		ExtnID: oidExtSubjectAltName,
+		// Critical:  false,
+		ExtnValue: encodedSAN,
+	})
 
-	// // Authority Key Identifier
-	// var issuerSKI []byte
-	// for _, caExt := range caCert.TBSCertificate.Extensions {
-	// 	if caExt.ExtnID.Equal(oidExtSubjectKeyId) {
-	// 		issuerSKI = caExt.ExtnValue
-	// 		break
-	// 	}
-	// }
-	// if len(issuerSKI) == 0 {
-	// 	panic("CA certificate does not have Subject Key Identifier")
-	// }
+	// Subject Key Identifier
+	skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
+	skiValue, err := asn1.Marshal(skiHash[:])
+	if err != nil {
+		panic("failed to marshal Subject Key Identifier value: " + err.Error())
+	}
+	extensions = append(extensions, Extension{
+		ExtnID: oidExtSubjectKeyId,
+		// Critical:  false,
+		ExtnValue: skiValue,
+	})
 
-	// extensions = append(extensions, Extension{
-	// 	ExtnID:    oidExtAuthorityKeyId,
-	// 	Critical:  false,
-	// 	ExtnValue: issuerSKI,
-	// })
+	// Authority Key Identifier
+	var issuerSKI []byte
+	for _, caExt := range caCert.TBSCertificate.Extensions {
+		if caExt.ExtnID.Equal(oidExtSubjectKeyId) {
+			issuerSKI = caExt.ExtnValue
+			break
+		}
+	}
+	if len(issuerSKI) == 0 {
+		panic("CA certificate does not have Subject Key Identifier")
+	}
+	aki := AuthorityKeyIdentifier{
+		KeyIdentifier: issuerSKI,
+	}
+	akiValue, err := asn1.Marshal(aki)
+	if err != nil {
+		panic("failed to marshal Authority Key Identifier: " + err.Error())
+	}
+
+	extensions = append(extensions, Extension{
+		ExtnID: oidExtAuthorityKeyId,
+		// Critical:  false,
+		ExtnValue: akiValue,
+	})
 
 	tbs := TBSCertificate{
 		Version:      2,
