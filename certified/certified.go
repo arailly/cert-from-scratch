@@ -2,7 +2,6 @@ package certified
 
 import (
 	"crypto/rsa"
-	"crypto/sha1"
 	"crypto/sha256"
 	"encoding/asn1"
 	"math/big"
@@ -19,8 +18,6 @@ var (
 	// X.509 Extension OIDs
 	oidExtBasicConstraints = asn1.ObjectIdentifier{2, 5, 29, 19}
 	oidExtKeyUsage         = asn1.ObjectIdentifier{2, 5, 29, 15}
-	oidExtSubjectKeyId     = asn1.ObjectIdentifier{2, 5, 29, 14}
-	oidExtAuthorityKeyId   = asn1.ObjectIdentifier{2, 5, 29, 35}
 	oidExtExtendedKeyUsage = asn1.ObjectIdentifier{2, 5, 29, 37}
 	oidExtSubjectAltName   = asn1.ObjectIdentifier{2, 5, 29, 17}
 	oidServerAuth          = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
@@ -178,31 +175,31 @@ func NewCACertificate(key *privkey.RSAPrivateKey) *Certificate {
 		ExtnValue: encodedKU,
 	})
 
-	// Subject Key Identifier
-	skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
-	skiValue, err := asn1.Marshal(skiHash[:])
-	if err != nil {
-		panic("failed to marshal Subject Key Identifier value: " + err.Error())
-	}
-	extensions = append(extensions, Extension{
-		ExtnID: oidExtSubjectKeyId,
-		// Critical:  false,
-		ExtnValue: skiValue,
-	})
+	// // Subject Key Identifier
+	// skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
+	// skiValue, err := asn1.Marshal(skiHash[:])
+	// if err != nil {
+	// 	panic("failed to marshal Subject Key Identifier value: " + err.Error())
+	// }
+	// extensions = append(extensions, Extension{
+	// 	ExtnID: oidExtSubjectKeyId,
+	// 	// Critical:  false,
+	// 	ExtnValue: skiValue,
+	// })
 
-	// Authority Key Identifier
-	aki := AuthorityKeyIdentifier{
-		KeyIdentifier: skiValue,
-	}
-	akiValue, err := asn1.Marshal(aki)
-	if err != nil {
-		panic("failed to marshal Authority Key Identifier: " + err.Error())
-	}
-	extensions = append(extensions, Extension{
-		ExtnID: oidExtAuthorityKeyId,
-		// Critical:  false,
-		ExtnValue: akiValue,
-	})
+	// // Authority Key Identifier
+	// aki := AuthorityKeyIdentifier{
+	// 	KeyIdentifier: skiValue,
+	// }
+	// akiValue, err := asn1.Marshal(aki)
+	// if err != nil {
+	// 	panic("failed to marshal Authority Key Identifier: " + err.Error())
+	// }
+	// extensions = append(extensions, Extension{
+	// 	ExtnID: oidExtAuthorityKeyId,
+	// 	// Critical:  false,
+	// 	ExtnValue: akiValue,
+	// })
 
 	tbs := &TBSCertificate{
 		Version:      2,
@@ -325,43 +322,6 @@ func NewServerCertificate(
 		ExtnID: oidExtSubjectAltName,
 		// Critical:  false,
 		ExtnValue: encodedSAN,
-	})
-
-	// Subject Key Identifier
-	skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
-	skiValue, err := asn1.Marshal(skiHash[:])
-	if err != nil {
-		panic("failed to marshal Subject Key Identifier value: " + err.Error())
-	}
-	extensions = append(extensions, Extension{
-		ExtnID: oidExtSubjectKeyId,
-		// Critical:  false,
-		ExtnValue: skiValue,
-	})
-
-	// Authority Key Identifier
-	var issuerSKI []byte
-	for _, caExt := range caCert.TBSCertificate.Extensions {
-		if caExt.ExtnID.Equal(oidExtSubjectKeyId) {
-			issuerSKI = caExt.ExtnValue
-			break
-		}
-	}
-	if len(issuerSKI) == 0 {
-		panic("CA certificate does not have Subject Key Identifier")
-	}
-	aki := AuthorityKeyIdentifier{
-		KeyIdentifier: issuerSKI,
-	}
-	akiValue, err := asn1.Marshal(aki)
-	if err != nil {
-		panic("failed to marshal Authority Key Identifier: " + err.Error())
-	}
-
-	extensions = append(extensions, Extension{
-		ExtnID: oidExtAuthorityKeyId,
-		// Critical:  false,
-		ExtnValue: akiValue,
 	})
 
 	tbs := TBSCertificate{
