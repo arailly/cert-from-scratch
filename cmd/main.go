@@ -18,21 +18,6 @@ func main() {
 	}
 
 	switch os.Args[1] {
-	case "privkey":
-		if len(os.Args) < 3 {
-			fmt.Fprintf(os.Stderr, "Error: output path required\n")
-			fmt.Fprintf(os.Stderr, "Usage: %s privkey <output-path>\n", os.Args[0])
-			os.Exit(1)
-		}
-		key, err := privkey.New(2048)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error generating private key: %v\n", err)
-			os.Exit(1)
-		}
-		if err := util.MarshalAndSaveKey(os.Args[2], key); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving private key: %v\n", err)
-			os.Exit(1)
-		}
 	case "basecert":
 		if len(os.Args) < 3 {
 			fmt.Fprintf(os.Stderr, "Error: output path required\n")
@@ -112,10 +97,7 @@ func main() {
 func printUsage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s <command> [args...]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\nCommands:\n")
-	fmt.Fprintf(os.Stderr, "  privkey <output-path>  Generate RSA private key in DER format\n")
 	fmt.Fprintf(os.Stderr, "  basecert <output-path>  Generate base certificate in DER format\n")
-	fmt.Fprintf(os.Stderr, "  signedcert <output-path-prefix>  Generate signed certificate and private key in DER format\n")
-	fmt.Fprintf(os.Stderr, "  https <prefix> <addr>  Start HTTPS server with <prefix>-cert.der and <prefix>-privkey.der (e.g. :8443)\n")
-	fmt.Fprintf(os.Stderr, "  chainedcert <output-path-prefix>  Generate certificate and private key with CommonName=localhost in DER format\n")
-	fmt.Fprintf(os.Stderr, "  cagen <output-path-prefix>  Generate CA certificate and private key (PEM)\n")
+	fmt.Fprintf(os.Stderr, "  selfsigned <output-path-prefix>  Generate self-signed certificate and private key in DER format\n")
+	fmt.Fprintf(os.Stderr, "  certified <output-path-prefix>  Generate valid ca certificate and server certificate and private key in DER format\n")
 }

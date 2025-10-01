@@ -5,28 +5,24 @@ import (
 	"time"
 )
 
-type BaseCertificate struct {
+type Certificate struct {
 	TBSCertificate     TBSCertificate
 	SignatureAlgorithm AlgorithmIdentifier
 	SignatureValue     asn1.BitString
 }
 
 type TBSCertificate struct {
-	Version         int `asn1:"tag:0,explicit"`
-	SerialNumber    int
-	Signature       AlgorithmIdentifier
-	Issuer          Name
-	Validity        Validity
-	Subject         Name
-	PublicKey       SubjectPublicKeyInfo
-	IssuerUniqueID  asn1.BitString `asn1:"tag:1,optional,omitempty"`
-	SubjectUniqueID asn1.BitString `asn1:"tag:2,optional,omitempty"`
-	Extensions      []Extension    `asn1:"tag:3,explicit,optional,omitempty"`
+	Version      int `asn1:"tag:0,explicit"`
+	SerialNumber int
+	Signature    AlgorithmIdentifier
+	Issuer       Name
+	Validity     Validity
+	Subject      Name
+	PublicKey    SubjectPublicKeyInfo
 }
 
 type AlgorithmIdentifier struct {
-	Algorithm  asn1.ObjectIdentifier
-	Parameters any `asn1:"optional"`
+	Algorithm asn1.ObjectIdentifier
 }
 
 type Name struct {
@@ -39,8 +35,8 @@ type AttributeTypeAndValue struct {
 }
 
 type Validity struct {
-	NotBefore time.Time `asn1:"generalized"`
-	NotAfter  time.Time `asn1:"generalized"`
+	NotBefore time.Time `asn1:"utc"`
+	NotAfter  time.Time `asn1:"utc"`
 }
 
 type SubjectPublicKeyInfo struct {
@@ -48,16 +44,9 @@ type SubjectPublicKeyInfo struct {
 	PublicKey asn1.BitString
 }
 
-type Extension struct {
-	ExtnID    asn1.ObjectIdentifier
-	Critical  bool
-	ExtnValue []byte
-}
-
-func New() *BaseCertificate {
+func New() *Certificate {
 	signatureAlgorithm := AlgorithmIdentifier{
-		Algorithm:  asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}, // RSA encryption
-		Parameters: asn1.NullRawValue,
+		Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}, // RSA encryption
 	}
 
 	zeros := make([]byte, 256)
@@ -78,8 +67,8 @@ func New() *BaseCertificate {
 		Signature:    signatureAlgorithm,
 		Issuer:       name,
 		Validity: Validity{
-			NotBefore: time.Now(),
-			NotAfter:  time.Now().AddDate(1, 0, 0), // Valid for 1 year
+			NotBefore: time.Now().UTC(),
+			NotAfter:  time.Now().AddDate(1, 0, 0).UTC(), // Valid for 1 year
 		},
 		Subject: name,
 		PublicKey: SubjectPublicKeyInfo{
@@ -88,13 +77,13 @@ func New() *BaseCertificate {
 		},
 	}
 
-	return &BaseCertificate{
+	return &Certificate{
 		TBSCertificate:     tbsCertificate,
 		SignatureAlgorithm: signatureAlgorithm,
 		SignatureValue:     bitStringWithZeros,
 	}
 }
 
-func (b *BaseCertificate) Marshal() ([]byte, error) {
+func (b *Certificate) Marshal() ([]byte, error) {
 	return asn1.Marshal(*b)
 }
