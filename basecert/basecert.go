@@ -46,7 +46,8 @@ type SubjectPublicKeyInfo struct {
 
 func New() *Certificate {
 	signatureAlgorithm := AlgorithmIdentifier{
-		Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}, // RSA encryption
+		// RSA encryption
+		Algorithm: asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1},
 	}
 
 	zeros := make([]byte, 256)
@@ -57,7 +58,10 @@ func New() *Certificate {
 
 	name := Name{
 		RDNSequence: []AttributeTypeAndValue{
-			{Type: asn1.ObjectIdentifier{2, 5, 4, 3}, Value: "localhost"},
+			{
+				Type:  asn1.ObjectIdentifier{2, 5, 4, 3},
+				Value: "localhost",
+			},
 		},
 	}
 
@@ -68,7 +72,7 @@ func New() *Certificate {
 		Issuer:       name,
 		Validity: Validity{
 			NotBefore: time.Now().UTC(),
-			NotAfter:  time.Now().AddDate(1, 0, 0).UTC(), // Valid for 1 year
+			NotAfter:  time.Now().AddDate(1, 0, 0).UTC(), // +1 year
 		},
 		Subject: name,
 		PublicKey: SubjectPublicKeyInfo{

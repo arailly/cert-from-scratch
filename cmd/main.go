@@ -21,12 +21,14 @@ func main() {
 	case "basecert":
 		if len(os.Args) < 3 {
 			fmt.Fprintf(os.Stderr, "Error: output path required\n")
-			fmt.Fprintf(os.Stderr, "Usage: %s basecert <output-path>\n", os.Args[0])
+			fmt.Fprintf(os.Stderr,
+				"Usage: %s basecert <output-path>\n", os.Args[0])
 			os.Exit(1)
 		}
 		cert := basecert.New()
 		if err := util.MarshalAndSaveCert(os.Args[2], cert); err != nil {
-			fmt.Fprintf(os.Stderr, "Error saving base certificate: %v\n", err)
+			fmt.Fprintf(os.Stderr,
+				"Error saving base certificate: %v\n", err)
 			os.Exit(1)
 		}
 	case "selfsigned":
@@ -97,7 +99,18 @@ func main() {
 func printUsage() {
 	fmt.Fprintf(os.Stderr, "Usage: %s <command> [args...]\n", os.Args[0])
 	fmt.Fprintf(os.Stderr, "\nCommands:\n")
-	fmt.Fprintf(os.Stderr, "  basecert <output-path>  Generate base certificate in DER format\n")
-	fmt.Fprintf(os.Stderr, "  selfsigned <output-path-prefix>  Generate self-signed certificate and private key in DER format\n")
-	fmt.Fprintf(os.Stderr, "  certified <output-path-prefix>  Generate valid ca certificate and server certificate and private key in DER format\n")
+	fmt.Fprintf(os.Stderr,
+		"  basecert <output-path>"+
+			"  Generate base certificate in DER format\n",
+	)
+	fmt.Fprintf(os.Stderr,
+		"  selfsigned <output-path-prefix>"+
+			"  Generate self-signed certificate and private key"+
+			" in DER format\n",
+	)
+	fmt.Fprintf(os.Stderr,
+		"  certified <output-path-prefix>"+
+			"  Generate valid ca certificate and server certificate and"+
+			" private key in DER format\n",
+	)
 }

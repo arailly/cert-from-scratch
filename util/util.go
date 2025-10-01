@@ -9,7 +9,12 @@ type Marshaler interface {
 	Marshal() ([]byte, error)
 }
 
-func SaveAsPEM(filename string, marshaler Marshaler, pemType string, perm os.FileMode) error {
+func SaveAsPEM(
+	filename string,
+	marshaler Marshaler,
+	pemType string,
+	perm os.FileMode,
+) error {
 	data, err := marshaler.Marshal()
 	if err != nil {
 		return err
