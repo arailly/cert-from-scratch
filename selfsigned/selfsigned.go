@@ -22,21 +22,17 @@ type Certificate struct {
 }
 
 type TBSCertificate struct {
-	Version         int `asn1:"tag:0,explicit"`
-	SerialNumber    int
-	Signature       AlgorithmIdentifier
-	Issuer          Name
-	Validity        Validity
-	Subject         Name
-	PublicKey       SubjectPublicKeyInfo
-	IssuerUniqueID  asn1.BitString `asn1:"tag:1,optional,omitempty"`
-	SubjectUniqueID asn1.BitString `asn1:"tag:2,optional,omitempty"`
-	Extensions      []Extension    `asn1:"tag:3,explicit,optional,omitempty"`
+	Version      int `asn1:"tag:0,explicit"`
+	SerialNumber int
+	Signature    AlgorithmIdentifier
+	Issuer       Name
+	Validity     Validity
+	Subject      Name
+	PublicKey    SubjectPublicKeyInfo
 }
 
 type AlgorithmIdentifier struct {
-	Algorithm  asn1.ObjectIdentifier
-	Parameters any `asn1:"optional"`
+	Algorithm asn1.ObjectIdentifier
 }
 
 type Name struct {
@@ -63,17 +59,10 @@ type RSAPublicKey struct {
 	E int
 }
 
-type Extension struct {
-	ExtnID    asn1.ObjectIdentifier
-	Critical  bool
-	ExtnValue []byte
-}
-
 // New creates a new Certificate with the given private key and fixed CommonName ("localhost").
-func New(privkey *privkey.RSAPrivateKey) *Certificate {
+func New(key *privkey.RSAPrivateKey) *Certificate {
 	signatureAlgorithm := AlgorithmIdentifier{
-		Algorithm:  oidSHA256WithRSAEncryption,
-		Parameters: asn1.NullRawValue,
+		Algorithm: oidSHA256WithRSAEncryption,
 	}
 
 	name := Name{
@@ -84,8 +73,8 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 
 	// cf. https://tex2e.github.io/rfc-translater/html/rfc3279.html
 	publicKey := RSAPublicKey{
-		N: privkey.Public().N,
-		E: privkey.Public().E,
+		N: key.Public().N,
+		E: key.Public().E,
 	}
 	encodedPublicKey, err := asn1.Marshal(publicKey)
 	if err != nil {
@@ -97,8 +86,7 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 	}
 	subjectPublicKeyInfo := SubjectPublicKeyInfo{
 		Algorithm: AlgorithmIdentifier{
-			Algorithm:  oidRSAEncryption,
-			Parameters: asn1.NullRawValue,
+			Algorithm: oidRSAEncryption,
 		},
 		PublicKey: publicKeyBitString,
 	}
@@ -121,7 +109,7 @@ func New(privkey *privkey.RSAPrivateKey) *Certificate {
 		panic("failed to marshal TBS certificate: " + err.Error())
 	}
 	hashed := sha256.Sum256(encodedTBS)
-	signature, err := privkey.Sign(hashed[:])
+	signature, err := key.Sign(hashed[:])
 	if err != nil {
 		panic("failed to sign TBS certificate: " + err.Error())
 	}
