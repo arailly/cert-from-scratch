@@ -18,9 +18,6 @@ var (
 	// X.509 Extension OIDs
 	oidExtBasicConstraints = asn1.ObjectIdentifier{2, 5, 29, 19}
 	oidExtKeyUsage         = asn1.ObjectIdentifier{2, 5, 29, 15}
-	oidExtExtendedKeyUsage = asn1.ObjectIdentifier{2, 5, 29, 37}
-	oidExtSubjectAltName   = asn1.ObjectIdentifier{2, 5, 29, 17}
-	oidServerAuth          = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
 )
 
 type Certificate struct {
@@ -30,16 +27,14 @@ type Certificate struct {
 }
 
 type TBSCertificate struct {
-	Version         int `asn1:"tag:0,explicit"`
-	SerialNumber    int
-	Signature       AlgorithmIdentifier
-	Issuer          Name
-	Validity        Validity
-	Subject         Name
-	PublicKey       SubjectPublicKeyInfo
-	IssuerUniqueID  asn1.BitString `asn1:"tag:1,optional,omitempty"`
-	SubjectUniqueID asn1.BitString `asn1:"tag:2,optional,omitempty"`
-	Extensions      []Extension    `asn1:"tag:3,explicit,optional,omitempty"`
+	Version      int `asn1:"tag:0,explicit"`
+	SerialNumber int
+	Signature    AlgorithmIdentifier
+	Issuer       Name
+	Validity     Validity
+	Subject      Name
+	PublicKey    SubjectPublicKeyInfo
+	Extensions   []Extension `asn1:"tag:3,explicit,optional,omitempty"`
 }
 
 type AlgorithmIdentifier struct {
@@ -72,11 +67,8 @@ type RSAPublicKey struct {
 }
 
 type Extension struct {
-	ExtnID asn1.ObjectIdentifier
-	// Critical: false の場合は、Critical フィールド自体を省略しないとブラウザが証明書のパースに失敗する。
-	// しかし、bool のデフォルト値は false であり、asn1 の omitempty タグをつけても false としてエンコードされてしまう。
-	// なんとかする。
-	// Critical  bool
+	ExtnID    asn1.ObjectIdentifier
+	Critical  bool `asn1:"optional"`
 	ExtnValue []byte
 }
 
@@ -85,19 +77,13 @@ type BasicConstraints struct {
 	PathLen int `asn1:"optional"`
 }
 
-type AuthorityKeyIdentifier struct {
-	KeyIdentifier []byte `asn1:"tag:0,optional"`
-	// AuthorityCertIssuer []GeneralName `asn1:"tag:1,optional"`
-	// AuthorityCertSerialNumber int      `asn1:"tag:2,optional"`
-}
-
-func sign(privkey *privkey.RSAPrivateKey, tbsCertificate *TBSCertificate) *Certificate {
+func sign(key *privkey.RSAPrivateKey, tbsCertificate *TBSCertificate) *Certificate {
 	encodedTBS, err := asn1.Marshal(*tbsCertificate)
 	if err != nil {
 		panic("failed to marshal TBS certificate: " + err.Error())
 	}
 	hashed := sha256.Sum256(encodedTBS)
-	signature, err := privkey.Sign(hashed[:])
+	signature, err := key.Sign(hashed[:])
 	if err != nil {
 		panic("failed to sign TBS certificate: " + err.Error())
 	}
@@ -155,8 +141,8 @@ func NewCACertificate(key *privkey.RSAPrivateKey) *Certificate {
 		panic("failed to marshal basic constraints: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID: oidExtBasicConstraints,
-		// Critical:  true,
+		ExtnID:    oidExtBasicConstraints,
+		Critical:  true,
 		ExtnValue: encodedBC,
 	})
 
@@ -170,36 +156,10 @@ func NewCACertificate(key *privkey.RSAPrivateKey) *Certificate {
 		panic("failed to marshal key usage: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID: oidExtKeyUsage,
-		// Critical:  true,
+		ExtnID:    oidExtKeyUsage,
+		Critical:  true,
 		ExtnValue: encodedKU,
 	})
-
-	// // Subject Key Identifier
-	// skiHash := sha1.Sum(subjectPublicKeyInfo.PublicKey.Bytes)
-	// skiValue, err := asn1.Marshal(skiHash[:])
-	// if err != nil {
-	// 	panic("failed to marshal Subject Key Identifier value: " + err.Error())
-	// }
-	// extensions = append(extensions, Extension{
-	// 	ExtnID: oidExtSubjectKeyId,
-	// 	// Critical:  false,
-	// 	ExtnValue: skiValue,
-	// })
-
-	// // Authority Key Identifier
-	// aki := AuthorityKeyIdentifier{
-	// 	KeyIdentifier: skiValue,
-	// }
-	// akiValue, err := asn1.Marshal(aki)
-	// if err != nil {
-	// 	panic("failed to marshal Authority Key Identifier: " + err.Error())
-	// }
-	// extensions = append(extensions, Extension{
-	// 	ExtnID: oidExtAuthorityKeyId,
-	// 	// Critical:  false,
-	// 	ExtnValue: akiValue,
-	// })
 
 	tbs := &TBSCertificate{
 		Version:      2,
@@ -220,6 +180,12 @@ func NewCACertificate(key *privkey.RSAPrivateKey) *Certificate {
 
 	return sign(key, tbs)
 }
+
+var (
+	oidExtExtendedKeyUsage = asn1.ObjectIdentifier{2, 5, 29, 37}
+	oidExtSubjectAltName   = asn1.ObjectIdentifier{2, 5, 29, 17}
+	oidServerAuth          = asn1.ObjectIdentifier{1, 3, 6, 1, 5, 5, 7, 3, 1}
+)
 
 func NewServerCertificate(
 	key *privkey.RSAPrivateKey,
@@ -261,8 +227,8 @@ func NewServerCertificate(
 		panic("failed to marshal basic constraints: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID: oidExtBasicConstraints,
-		// Critical:  true,
+		ExtnID:    oidExtBasicConstraints,
+		Critical:  true,
 		ExtnValue: encodedBC,
 	})
 
@@ -276,8 +242,8 @@ func NewServerCertificate(
 		panic("failed to marshal key usage: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID: oidExtKeyUsage,
-		// Critical:  true,
+		ExtnID:    oidExtKeyUsage,
+		Critical:  true,
 		ExtnValue: encodedKU,
 	})
 
@@ -319,8 +285,8 @@ func NewServerCertificate(
 		panic("failed to marshal subject alternative name: " + err.Error())
 	}
 	extensions = append(extensions, Extension{
-		ExtnID: oidExtSubjectAltName,
-		// Critical:  false,
+		ExtnID:    oidExtSubjectAltName,
+		Critical:  false,
 		ExtnValue: encodedSAN,
 	})
 

@@ -10,9 +10,9 @@ import (
 )
 
 var (
-	oidRSAEncryption           = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
-	oidSHA256WithRSAEncryption = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
-	oidCommonName              = asn1.ObjectIdentifier{2, 5, 4, 3}
+	oidRSAEncryption    = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 1}
+	oidSHA256WithRSAEnc = asn1.ObjectIdentifier{1, 2, 840, 113549, 1, 1, 11}
+	oidCommonName       = asn1.ObjectIdentifier{2, 5, 4, 3}
 )
 
 type Certificate struct {
@@ -62,7 +62,7 @@ type RSAPublicKey struct {
 // New creates a new Certificate with the given private key and fixed CommonName ("localhost").
 func New(key *privkey.RSAPrivateKey) *Certificate {
 	signatureAlgorithm := AlgorithmIdentifier{
-		Algorithm: oidSHA256WithRSAEncryption,
+		Algorithm: oidSHA256WithRSAEnc,
 	}
 
 	name := Name{
